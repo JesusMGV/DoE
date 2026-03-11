@@ -1,0 +1,134 @@
+[
+{
+"id": "card_1",
+"name": "Blazing Rush",
+"element": "fire",
+"initiative": 1,
+"bonus": 2,
+"action": { "type": "attack", "value": 2 },
+"upgradedAction": { "type": "attack", "value": 4 },
+"upgradeRequirement": "fire",
+"resistance": { "element": "earth", "value": 1 }
+},
+{
+"id": "card_2",
+"name": "Ember Dash",
+"element": "fire",
+"initiative": 2,
+"bonus": 1,
+"action": { "type": "move", "value": 2 },
+"upgradedAction": { "type": "attack", "value": 3 },
+"upgradeRequirement": "earth",
+"resistance": { "element": "water", "value": 2 }
+},
+{
+"id": "card_3",
+"name": "Flame Strike",
+"element": "fire",
+"initiative": 1,
+"bonus": 3,
+"action": { "type": "attack", "value": 3 },
+"upgradedAction": { "type": "attack", "value": 5 },
+"upgradeRequirement": "fire",
+"resistance": { "element": "wind", "value": 1 }
+},
+{
+"id": "card_4",
+"name": "Earth Step",
+"element": "earth",
+"initiative": 2,
+"bonus": 2,
+"action": { "type": "move", "value": 3 },
+"upgradedAction": { "type": "move", "value": 5 },
+"upgradeRequirement": "wind",
+"resistance": { "element": "water", "value": 1 }
+},
+{
+"id": "card_5",
+"name": "Airy Blow",
+"element": "wind",
+"initiative": 1,
+"bonus": 2,
+"action": { "type": "attack", "value": 2 },
+"upgradedAction": { "type": "move", "value": 4 },
+"upgradeRequirement": "earth",
+"resistance": { "element": "earth", "value": 2 }
+},
+{
+"id": "card_6",
+"name": "Tidal Step",
+"element": "water",
+"initiative": 2,
+"bonus": 1,
+"action": { "type": "move", "value": 2 },
+"upgradedAction": { "type": "move", "value": 4 },
+"upgradeRequirement": "water",
+"resistance": { "element": "fire", "value": 2 }
+},
+{
+"id": "card_7",
+"name": "Wave Crash",
+"element": "water",
+"initiative": 1,
+"bonus": 2,
+"action": { "type": "attack", "value": 3 },
+"upgradedAction": { "type": "attack", "value": 5 },
+"upgradeRequirement": "water",
+"resistance": { "element": "earth", "value": 1 }
+},
+{
+"id": "card_8",
+"name": "Flood Advance",
+"element": "water",
+"initiative": 2,
+"bonus": 2,
+"action": { "type": "move", "value": 2 },
+"upgradedAction": { "type": "attack", "value": 4 },
+"upgradeRequirement": "wind",
+"resistance": { "element": "fire", "value": 1 }
+},
+{
+"id": "card_9",
+"name": "Stone Breaker",
+"element": "earth",
+"initiative": 1,
+"bonus": 3,
+"action": { "type": "attack", "value": 3 },
+"upgradedAction": { "type": "attack", "value": 5 },
+"upgradeRequirement": "earth",
+"resistance": { "element": "wind", "value": 1 }
+},
+{
+"id": "card_10",
+"name": "Gale Shift",
+"element": "wind",
+"initiative": 2,
+"bonus": 2,
+"action": { "type": "move", "value": 3 },
+"upgradedAction": { "type": "move", "value": 5 },
+"upgradeRequirement": "wind",
+"resistance": { "element": "earth", "value": 1 }
+},
+{
+"id": "card_11",
+"name": "Ground Breaker",
+"element": "earth",
+"initiative": 1,
+"bonus": 3,
+"action": { "type": "attack", "value": 3 },
+"upgradedAction": { "type": "attack", "value": 5 },
+"upgradeRequirement": "earth",
+"resistance": { "element": "wind", "value": 1 }
+},
+{
+"id": "card_12",
+"name": "Gale Stride",
+"element": "wind",
+"initiative": 2,
+"bonus": 2,
+"action": { "type": "move", "value": 3 },
+"upgradedAction": { "type": "move", "value": 5 },
+"upgradeRequirement": "wind",
+"resistance": { "element": "earth", "value": 1 }
+}
+]
