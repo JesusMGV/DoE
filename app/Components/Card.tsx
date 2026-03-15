@@ -8,10 +8,24 @@ import { Flame, Droplet, Mountain, Wind, Footprints, Sword, Zap } from "lucide-r
 import { ResistanceIcon } from "./ResistanceIcon";
 
 const elementStyles: Record<string, string> = {
-    fire: "bg-gradient-to-br from-red-400/20 via-red-500 to-red-800/10",
-    water: "bg-gradient-to-br from-blue-400/20 via-blue-500 to-blue-900/10",
-    earth: "bg-gradient-to-br from-green-400/20 via-green-500 to-green-900/10",
-    wind: "bg-gradient-to-br from-amber-300/20 via-amber-500 to-amber-900/10",
+    fire: "bg-gradient-to-b from-red-500/70 to-red-800/20",
+    water: "bg-gradient-to-b from-blue-400/70 to-blue-900/20",
+    earth: "bg-gradient-to-b from-green-400/70  to-green-900/20",
+    wind: "bg-gradient-to-b from-amber-300/70  to-amber-900/20",
+};
+const actionElementStyles: Record<string, string> = {
+    fire: "bg-red-500/80",
+    water: "bg-blue-400/80",
+    earth: "bg-green-400/80",
+    wind: "bg-amber-300/80",
+};
+
+const upgradePulseStyles: Record<string, string> = {
+    // fire: "animate-pulse bg-red-500/30 ring-2 ring-red-400/50",
+    fire: "animate-[pulse_2s_ease-in-out_infinite] bg-red-500/30 ring-2 ring-red-400/50 shadow-red-500/50 shadow-lg",
+    water: "animate-pulse bg-blue-500/30 ring-2 ring-blue-400/50",
+    earth: "animate-pulse bg-green-500/30 ring-2 ring-green-400/50",
+    wind: "animate-pulse bg-amber-400/30 ring-2 ring-amber-300/50",
 };
 
 const elementIcons: Record<string, JSX.Element> = {
@@ -62,7 +76,9 @@ export default function CardComponent({
     }
 
     const elementStyle = elementStyles[card.element] ?? "bg-slate-300";
-    const upgradeStyle = elementStyles[card.upgradeRequirement] ?? "bg-slate-300";
+    const upgradeStyle = actionElementStyles[card.upgradeRequirement] ?? "bg-slate-300";
+    const upgradePulse = upgradePulseStyles[card.upgradeRequirement] ?? "";
+    // console.log(upgradeStyle)
 
     return (
         <div
@@ -70,6 +86,10 @@ export default function CardComponent({
             style={style}
             {...listeners}
             {...attributes}
+            onContextMenu={(e) => {
+                e.preventDefault();
+                onClickAction?.(card);
+            }}
             onClick={() => {
                 if (wasDragging.current) return;
                 onClickAction && onClickAction(card);
@@ -115,7 +135,7 @@ export default function CardComponent({
                     {/* Upgraded Action */}
                     <span
                         className={`border border-black font-semibold ${upgradeStyle} p-1 rounded-lg
-                        ${zone === "action" && upgraded ? "animate-pulse bg-yellow-900/40" : ""}
+                        ${zone === "action" && upgraded ? upgradePulse : ""}
                         ${zoneOpacity("action")}
                         ${zone === "action" && upgraded ? zoneHighlight("action") : ""}
                         ${zone === "action" && !upgraded ? "opacity-30" : ""}

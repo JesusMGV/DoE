@@ -19,7 +19,7 @@
 "action": { "type": "move", "value": 2 },
 "upgradedAction": { "type": "attack", "value": 3 },
 "upgradeRequirement": "earth",
-"resistance": { "element": "water", "value": 2 }
+"resistance": { "element": null, "value": 2 }
 },
 {
 "id": "card_3",
