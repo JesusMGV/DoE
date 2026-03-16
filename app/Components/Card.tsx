@@ -160,8 +160,14 @@ export default function CardComponent({
 
                 {/* Bonus */}
                 <div className={`flex justify-between
-                    ${zoneOpacity("bonus")}
-                    ${zoneHighlight("bonus")}`}>
+                    ${zoneOpacity("bonusAction")}
+                    ${zoneHighlight("bonusAction")}`}>
+                    <span>Bonus</span>
+                    <span>{card.bonus}</span>
+                </div>
+                <div className={`flex justify-between
+                    ${zoneOpacity("bonusInit")}
+                    ${zoneHighlight("bonusInit")}`}>
                     <span>Bonus</span>
                     <span>{card.bonus}</span>
                 </div>
@@ -170,7 +176,7 @@ export default function CardComponent({
 
             {/* Resistance */}
             <div className={`text-xs border-t border-white/40 pt-1 flex justify-between items-center
-                ${zone && zone !== 'element' ? 'opacity-50' : ''}`}>
+                ${zone && zone !== 'elementasdas' ? 'opacity-50' : ''}`}>
                 <span>Resist</span>
                 <ResistanceIcon
                     element={card.resistance.element}

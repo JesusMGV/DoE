@@ -13,7 +13,7 @@ import Board from "./Components/Board";
     return [...array].sort(() => Math.random() - 0.5);
   }
 
-  type Location = "hand" | "action" | "element" | "bonus" | "modifier" | "deck";
+  type Location = "hand" | "action" | "element" | "bonusInit" | "bonusAction" | "modifier" | "deck";
 
   type CardState = {
     card: Card;
@@ -26,9 +26,9 @@ export default function Home() {
   const [cards, setCards] = useState<CardState[]>([]);
 
   useEffect(() => {
-    const shuffled = shuffle(typedDeck);
+    const shuffledDeck = shuffle(typedDeck);
 
-    const initialCards: CardState[] = shuffled.map((card, index) => ({
+    const initialCards: CardState[] = shuffledDeck.map((card, index) => ({
       card,
       location: index < 4 ? "hand" : "deck"
     }));
@@ -59,9 +59,8 @@ export default function Home() {
   //   });
   // }, []);
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
+const handleDragEnd = useCallback((event: DragEndEvent) => {
   const { active, over } = event;
-
   if (!over) return;
 
   const zone = over.id as Location;
@@ -77,9 +76,20 @@ export default function Home() {
 
     const existing = updated.find((c) => c.location === zone);
 
-    // If a card already exists in the zone → swap them
+    // Swap if zone already occupied
     if (existing) {
       existing.location = origin;
+    }
+
+    // BONUS ZONE RULE
+    if (zone === "bonusAction" || zone === "bonusInit") {
+      const otherBonusZone = zone === "bonusAction" ? "bonusInit" : "bonusAction";
+
+      const otherBonusCard = updated.find((c) => c.location === otherBonusZone);
+
+      if (otherBonusCard) {
+        otherBonusCard.location = "hand";
+      }
     }
 
     dragged.location = zone;
@@ -106,16 +116,17 @@ export default function Home() {
   const zones = {
     action: cards.find((c) => c.location === "action")?.card ?? null,
     element: cards.find((c) => c.location === "element")?.card ?? null,
-    bonus: cards.find((c) => c.location === "bonus")?.card ?? null,
+    bonusAction: cards.find((c) => c.location === "bonusAction")?.card ?? null,
+    bonusInit: cards.find((c) => c.location === "bonusInit")?.card ?? null,
     modifier: cards.find((c) => c.location === "modifier")?.card ?? null
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center text-white">
+    <main className="min-h-screen bg-slate-900 flex flex-col items-center text-white">
       <DndContext onDragEnd={handleDragEnd}>
         <Board zones={zones} returnToHandAction={returnToHandAction} />
         <Hand cards={hand.map((c) => c.card)} />
       </DndContext>
-    </div>
+    </main>
   );
 }
