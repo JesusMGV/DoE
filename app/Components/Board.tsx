@@ -1,11 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Clock3, Droplets, Flame, Footprints, HeartCrack, Mountain, Skull, Sparkles, Sword, Wind, X, Zap } from "lucide-react";
+import { useDroppable } from "@dnd-kit/core";
+import { AlertTriangle, Clock3, Droplets, Flame, Footprints, HeartCrack, Mountain, Shield, Skull, Sparkles, Sword, Wind, X, Zap } from "lucide-react";
 
 import DropZone from "./DropZone";
 import { enemyAbilityMeta, getCardLevelStats, getCardStatChanges, hardshipMeta, keywordMeta } from "./game/rulebookMeta";
 import { Adventure, BattlePreview, Card, Dragon, EncounterKind, Enemy, HardshipKey, Region } from "../Types/types";
+import { ResistanceIcon } from "./ResistanceIcon";
 
 type CampaignState = {
   xp: number;
@@ -251,42 +253,13 @@ const journeyBackgroundsById: Record<string, string> = {
   `),
 };
 
-function RuleChip({
-  icon,
-  label,
-  description,
-  tone = "default",
-}: {
-  icon: ReactNode;
-  label: string;
-  description: string;
-  tone?: "default" | "danger" | "warn";
-}) {
-  const toneClass =
-    tone === "danger"
-      ? "border-rose-300/20 bg-rose-950/40 text-rose-100"
-      : tone === "warn"
-        ? "border-amber-300/20 bg-amber-950/40 text-amber-100"
-        : "border-white/10 bg-slate-950/70 text-slate-100";
-
-  return (
-    <div className={`rounded-xl border px-3 py-2 ${toneClass}`}>
-      <div className="flex items-center gap-2 text-sm font-semibold">
-        {icon}
-        <span>{label}</span>
-      </div>
-      <div className="mt-1 text-xs leading-5 text-white/75">{description}</div>
-    </div>
-  );
-}
-
 function HoverHint({
   label,
   description,
   children,
 }: {
   label: string;
-  description: string;
+  description: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -300,12 +273,56 @@ function HoverHint({
   );
 }
 
+function RegroupDropZone({
+  label,
+  preview,
+}: {
+  label: string;
+  preview: ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: "regroupDiscard" });
+
+  return (
+    <HoverHint label={label} description={preview}>
+      <div
+        ref={setNodeRef}
+        className={`rounded-xl border border-dashed px-3 py-2 text-[11px] font-semibold text-slate-100 transition ${
+          isOver ? "border-cyan-300 bg-cyan-950/40" : "border-white/15 bg-slate-950/75"
+        }`}
+      >
+        Discard a card to regroup
+      </div>
+    </HoverHint>
+  );
+}
+
 function Pill({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2">
       <div className="text-[10px] uppercase tracking-[0.22em] text-slate-400">{label}</div>
       <div className="mt-1 text-sm font-semibold text-white">{value}</div>
     </div>
+  );
+}
+
+function StatPill({
+  icon,
+  value,
+  label,
+  description,
+}: {
+  icon: ReactNode;
+  value: ReactNode;
+  label: string;
+  description: ReactNode;
+}) {
+  return (
+    <HoverHint label={label} description={description}>
+      <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-900/80 px-2.5 py-1 text-xs text-slate-100">
+        {icon}
+        <span>{value}</span>
+      </div>
+    </HoverHint>
   );
 }
 
@@ -376,9 +393,7 @@ export default function Board({
   useReserveAgainstRanged,
   dragonStage,
   finalActionSets,
-  regroupMode,
   canRegroup,
-  regroupPreview,
   resolution,
   resolutionCards,
   notice,
@@ -386,7 +401,6 @@ export default function Board({
   onBoostTargetChange,
   onUseReserveAgainstRangedChange,
   onEditActionSet,
-  onRegroup,
   onResolve,
   onUpgradeCard,
   onDowngradeCard,
@@ -421,9 +435,7 @@ export default function Board({
     label: string;
     preview: BattlePreview;
   }>;
-  regroupMode: boolean;
   canRegroup: boolean;
-  regroupPreview: string | null;
   resolution: EncounterResolution | null;
   resolutionCards: Card[];
   notice: string | null;
@@ -431,7 +443,6 @@ export default function Board({
   onBoostTargetChange: (target: BoostTarget) => void;
   onUseReserveAgainstRangedChange: (value: boolean) => void;
   onEditActionSet: (index: number) => void;
-  onRegroup: () => void;
   onResolve: () => void;
   onUpgradeCard: (cardId: string) => void;
   onDowngradeCard: (cardId: string) => void;
@@ -543,9 +554,28 @@ export default function Board({
             },
           }
         : null;
+  const regroupPreviewContent =
+    nextEncounterCard ? (
+      <div className="space-y-1">
+        <div className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-200">
+          {nextEncounterCard.icon}
+          {nextEncounterCard.label}
+        </div>
+        <div className="text-xs font-semibold text-white">{nextEncounterCard.title}</div>
+        {nextEncounterCard.lines.map((line) => (
+          <div key={line} className="text-[11px] leading-4 text-slate-300">
+            {line}
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div className="text-[11px] leading-4 text-slate-300">
+        Discard one card, then redraw the Final Journey hand.
+      </div>
+    );
 
   return (
-    <section className="mx-auto w-full max-w-[88rem] px-3 py-4 sm:px-4">
+    <section className="mx-auto w-full max-w-[78rem] px-3 py-4 sm:px-4">
       <div className={`rounded-[2rem] border bg-slate-950/70 p-4 shadow-2xl ${regionTheme.shellBorder} ${regionTheme.shellGlow}`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -576,7 +606,7 @@ export default function Board({
           </div>
         ) : null}
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)_20rem]">
+        <div className="mt-4 grid gap-4 lg:grid-cols-[14rem_minmax(0,1fr)_18rem]">
           <div className="space-y-3">
             {campaign.phase === "region" && nextEncounterCard ? (
               <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/80 p-4">
@@ -651,101 +681,151 @@ export default function Board({
                   </div>
                   <div className="flex items-start gap-2">
                     {canRegroup ? (
-                      <HoverHint
+                      <RegroupDropZone
                         label={dragonStage === "journey" ? "Regroup" : "Regroup / Divert"}
-                        description={regroupPreview ?? "Discard a hand card to cycle the encounter."}
-                      >
-                        <button
-                          type="button"
-                          onClick={onRegroup}
-                          className="rounded-full border border-white/10 bg-slate-950/80 px-3 py-2 text-[11px] font-semibold text-slate-100 transition hover:bg-slate-950"
-                        >
-                          {dragonStage === "journey" ? "Regroup" : "Regroup / Divert"}
-                        </button>
-                      </HoverHint>
+                        preview={regroupPreviewContent}
+                      />
                     ) : null}
                     <div className="rounded-full border border-white/10 bg-slate-950/70 p-2 text-cyan-200">
                       {encounterCard.icon}
                     </div>
                   </div>
                 </div>
-                {canRegroup && regroupMode ? (
-                  <div className="mt-3 text-xs text-slate-200">Choose a hand card to discard.</div>
-                ) : null}
-                <div className="mt-3 space-y-1.5 text-sm text-slate-300">
-                  {encounterCard.lines.map((line) => (
-                    <div key={line}>{line}</div>
-                  ))}
-                  <div>{encounterCard.detail}</div>
+                <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-300">
+                  {encounterKind === "enemy" && currentEnemy ? (
+                    <>
+                      <StatPill
+                        icon={<span className="text-[10px] font-semibold text-slate-300">HP</span>}
+                        value={currentEnemy.health}
+                        label="Health"
+                        description="Damage needed for a complete victory."
+                      />
+                      <StatPill
+                        icon={currentEnemy.attackElement ? elementIcons[currentEnemy.attackElement] : <Sword className="h-3.5 w-3.5" />}
+                        value={currentEnemy.attack}
+                        label="Attack"
+                        description={`Enemy combat damage${currentEnemy.attackElement ? ` using the ${elementLabels[currentEnemy.attackElement].toLowerCase()} element` : ""}.`}
+                      />
+                      <StatPill
+                        icon={<Zap className="h-3.5 w-3.5" />}
+                        value={currentEnemy.initiative}
+                        label="Initiative"
+                        description="Beat this to avoid normal early damage."
+                      />
+                      <StatPill
+                        icon={<Shield className="h-3.5 w-3.5 text-slate-300" />}
+                        value={currentEnemy.armor}
+                        label="Armor"
+                        description={keywordMeta.armor.description}
+                      />
+                      {currentEnemy.resistanceElement ? (
+                        <StatPill
+                          icon={<ResistanceIcon element={currentEnemy.resistanceElement} value={1} />}
+                          value={1}
+                          label="Elemental Resistance"
+                          description={`Attacking with ${elementLabels[currentEnemy.resistanceElement].toLowerCase()} deals 1 less damage to this enemy.`}
+                        />
+                      ) : null}
+                      <StatPill
+                        icon={<AlertTriangle className="h-3.5 w-3.5 text-rose-300" />}
+                        value={currentEnemy.earlyDamage}
+                        label="Early"
+                        description={`${keywordMeta.early.description}${currentEnemy.attackElement ? ` This damage uses the ${elementLabels[currentEnemy.attackElement].toLowerCase()} element.` : ""}`}
+                      />
+                    </>
+                  ) : null}
+                  {encounterKind === "adventure" && currentAdventure ? (
+                    <>
+                      <StatPill
+                        icon={<Footprints className="h-3.5 w-3.5" />}
+                        value={currentAdventure.targetProgress}
+                        label="Move target"
+                        description="Total move needed to clear the journey."
+                      />
+                      <StatPill
+                        icon={<Clock3 className="h-3.5 w-3.5" />}
+                        value={currentAdventure.timePenalty}
+                        label="Time"
+                        description={keywordMeta.time.description}
+                      />
+                    </>
+                  ) : null}
+                  {encounterKind === "dragon" && currentDragon ? (
+                    <>
+                      <StatPill
+                        icon={<span className="text-[10px] font-semibold text-slate-300">HP</span>}
+                        value={currentDragon.healthTiers.join("/")}
+                        label="Dragon health tiers"
+                        description="Attack thresholds for the final fight."
+                      />
+                      <StatPill
+                        icon={elementIcons[currentDragon.element]}
+                        value={currentDragon.attackTiers.join("/")}
+                        label="Dragon damage tiers"
+                        description={`Final damage to soak at each dragon tier, using the ${elementLabels[currentDragon.element].toLowerCase()} element.`}
+                      />
+                      <StatPill
+                        icon={<Zap className="h-3.5 w-3.5" />}
+                        value={currentDragon.initiative}
+                        label="Initiative"
+                        description="Beat this to avoid the dragon's early hit."
+                      />
+                      <StatPill
+                        icon={<Shield className="h-3.5 w-3.5 text-slate-300" />}
+                        value={currentDragon.armor}
+                        label="Armor"
+                        description={keywordMeta.armor.description}
+                      />
+                      <StatPill
+                        icon={<ResistanceIcon element={currentDragon.element} value={1} />}
+                        value={1}
+                        label="Elemental Resistance"
+                        description={`Attacking with ${elementLabels[currentDragon.element].toLowerCase()} deals 1 less damage to the dragon.`}
+                      />
+                      <StatPill
+                        icon={<AlertTriangle className="h-3.5 w-3.5 text-rose-300" />}
+                        value={currentDragon.earlyDamage}
+                        label="Early"
+                        description={`Early damage using the ${elementLabels[currentDragon.element].toLowerCase()} element.`}
+                      />
+                    </>
+                  ) : null}
                 </div>
-                {encounterCard.tag ? (
+                <div className="mt-3 text-sm text-slate-300">{encounterCard.detail}</div>
+                {encounterKind === "enemy" && currentEnemy?.ability ? (
                   <div className="mt-3">
-                    <RuleChip
-                      icon={encounterCard.tag.icon}
-                      label={encounterCard.tag.label}
-                      description={encounterCard.tag.description}
-                      tone={encounterCard.tag.tone}
-                    />
+                    <HoverHint
+                      label={enemyAbilityMeta[currentEnemy.ability].label}
+                      description={enemyAbilityMeta[currentEnemy.ability].description}
+                    >
+                      <div className="inline-flex items-center gap-1 rounded-full bg-amber-950/50 px-2.5 py-1 text-xs text-amber-100">
+                        {enemyAbilityMeta[currentEnemy.ability].icon}
+                        {enemyAbilityMeta[currentEnemy.ability].label}
+                      </div>
+                    </HoverHint>
                   </div>
                 ) : null}
-                {encounterKind === "enemy" ? (
-                  <div className="mt-3 grid gap-2 md:grid-cols-2">
-                    <RuleChip
-                      icon={keywordMeta.early.icon}
-                      label={`Early ${currentEnemy?.earlyDamage ?? 0}`}
-                      description={`${keywordMeta.early.description}${currentEnemy?.attackElement ? ` This damage uses the ${elementLabels[currentEnemy.attackElement].toLowerCase()} element.` : ""}`}
-                      tone="danger"
-                    />
-                    {currentEnemy?.attackElement ? (
-                      <RuleChip
-                        icon={elementIcons[currentEnemy.attackElement]}
-                        label={`Attack ${currentEnemy.attack}`}
-                        description={`This enemy's attack damage uses the ${elementLabels[currentEnemy.attackElement].toLowerCase()} element.`}
-                        tone="default"
-                      />
-                    ) : null}
-                    <RuleChip
-                      icon={keywordMeta.armor.icon}
-                      label={`Armor ${currentEnemy?.armor ?? 0}`}
-                      description={keywordMeta.armor.description}
-                      tone="default"
-                    />
-                    {currentEnemy?.resistanceElement ? (
-                      <RuleChip
-                        icon={keywordMeta.armor.icon}
-                        label={`${elementLabels[currentEnemy.resistanceElement]} Resist 1`}
-                        description={`Attacking with ${elementLabels[currentEnemy.resistanceElement].toLowerCase()} deals 1 less damage to this enemy.`}
-                        tone="warn"
-                      />
-                    ) : null}
-                    {currentEnemy?.ability ? (
-                      <RuleChip
-                        icon={enemyAbilityMeta[currentEnemy.ability].icon}
-                        label={enemyAbilityMeta[currentEnemy.ability].label}
-                        description={enemyAbilityMeta[currentEnemy.ability].description}
-                        tone="warn"
-                      />
-                    ) : null}
-                  </div>
-                ) : null}
-                {encounterKind === "adventure" ? (
+                {encounterKind === "adventure" && currentAdventure ? (
                   <div className="mt-3">
-                    <RuleChip
-                      icon={keywordMeta.time.icon}
-                      label={`Time ${currentAdventure?.timePenalty ?? 0}`}
-                      description={keywordMeta.time.description}
-                      tone="warn"
-                    />
+                    <HoverHint
+                      label={hardshipMeta[currentAdventure.peril].label}
+                      description={hardshipMeta[currentAdventure.peril].description}
+                    >
+                      <div className="inline-flex items-center gap-1 rounded-full bg-cyan-950/50 px-2.5 py-1 text-xs text-cyan-100">
+                        {hardshipMeta[currentAdventure.peril].icon}
+                        {hardshipMeta[currentAdventure.peril].label}
+                      </div>
+                    </HoverHint>
                   </div>
                 ) : null}
                 {encounterKind !== "dragon" && hardshipInfo ? (
                   <div className="mt-3">
-                    <RuleChip
-                      icon={hardshipInfo.icon}
-                      label={`Key Hazard: ${hardshipInfo.label}`}
-                      description={hardshipInfo.description}
-                      tone="warn"
-                    />
+                    <HoverHint label={`Key Hazard: ${hardshipInfo.label}`} description={hardshipInfo.description}>
+                      <div className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2.5 py-1 text-xs text-slate-200">
+                        {hardshipInfo.icon}
+                        Key Hazard
+                      </div>
+                    </HoverHint>
                   </div>
                 ) : null}
                 </div>
@@ -861,6 +941,40 @@ export default function Board({
                         Value
                       </div>
                       <div className="mt-1 text-lg font-semibold text-white">{preview.totalActionValue}</div>
+                      <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-slate-300">
+                        <HoverHint
+                          label={preview.actionType === "move" ? "Move value" : "Attack value"}
+                          description={`${preview.actionType === "move" ? "Base move" : "Base attack"} before bonuses and reductions.`}
+                        >
+                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2 py-0.5">
+                            {preview.actionType === "move" ? <Footprints className="h-3 w-3" /> : <Sword className="h-3 w-3" />}
+                            {preview.actionBaseValue ?? preview.totalActionValue}
+                          </span>
+                        </HoverHint>
+                        {(preview.actionBonusApplied ?? 0) > 0 ? (
+                          <HoverHint
+                            label="Bonus applied"
+                            description="Boost and other positive modifiers added to the action."
+                          >
+                            <span className="rounded-full bg-emerald-950/50 px-2 py-0.5 text-emerald-200">
+                              +{preview.actionBonusApplied}
+                            </span>
+                          </HoverHint>
+                        ) : null}
+                      </div>
+                      {(preview.actionReductionTotal ?? 0) > 0 ? (
+                        <div className="mt-1">
+                          <HoverHint
+                            label="Reductions"
+                            description={(preview.actionReductionReasons ?? []).join(", ")}
+                          >
+                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-950/50 px-2 py-0.5 text-xs text-rose-200">
+                              <Shield className="h-3 w-3" />
+                              -{preview.actionReductionTotal}
+                            </span>
+                          </HoverHint>
+                        </div>
+                      ) : null}
                     </div>
                     <div className="rounded-xl bg-slate-950/70 px-3 py-2">
                       <div className="flex items-center gap-1 text-slate-400">

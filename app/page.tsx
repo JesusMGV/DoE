@@ -79,6 +79,13 @@ type FinalActionSet = {
   boostTarget: BoostTarget;
 };
 
+const elementLabels: Record<Elemental, string> = {
+  fire: "Fire",
+  water: "Water",
+  earth: "Earth",
+  wind: "Wind",
+};
+
 function shuffle<T>(array: T[]): T[] {
   return [...array].sort(() => Math.random() - 0.5);
 }
@@ -322,6 +329,18 @@ function getPreview({
       outcome,
       actionType: resolvedAction.type,
       totalActionValue: effectiveAttack,
+      actionBaseValue: resolvedAction.type === "attack" ? resolvedAction.value : 1,
+      actionBonusApplied:
+        resolvedAction.type === "attack" && boostTarget === "action"
+          ? effectiveBoost + testControls.attackModifier
+          : testControls.attackModifier,
+      actionReductionTotal: enemy.armor + elementalPenalty,
+      actionReductionReasons: [
+        ...(enemy.armor > 0 ? [`Armor ${enemy.armor}`] : []),
+        ...(elementalPenalty > 0 && enemy.resistanceElement
+          ? [`${elementLabels[enemy.resistanceElement]} resistance ${elementalPenalty}`]
+          : []),
+      ],
       totalInitiative,
       damagePenalty,
       timePenalty,
@@ -365,6 +384,13 @@ function getPreview({
       outcome,
       actionType: resolvedAction.type,
       totalActionValue: effectiveMove,
+      actionBaseValue: resolvedAction.type === "move" ? resolvedAction.value : 1,
+      actionBonusApplied:
+        resolvedAction.type === "move" || boostTarget === "action"
+          ? effectiveBoost + testControls.moveModifier
+          : testControls.moveModifier,
+      actionReductionTotal: 0,
+      actionReductionReasons: [],
       totalInitiative,
       damagePenalty,
       timePenalty,
@@ -390,6 +416,13 @@ function getPreview({
       outcome: "complete",
       actionType: resolvedAction.type,
       totalActionValue: effectiveMove,
+      actionBaseValue: resolvedAction.type === "move" ? resolvedAction.value : 1,
+      actionBonusApplied:
+        resolvedAction.type === "move" || boostTarget === "action"
+          ? effectiveBoost + testControls.moveModifier
+          : testControls.moveModifier,
+      actionReductionTotal: 0,
+      actionReductionReasons: [],
       totalInitiative,
       damagePenalty: 0,
       timePenalty: 0,
@@ -426,6 +459,16 @@ function getPreview({
       outcome,
       actionType: resolvedAction.type,
       totalActionValue: effectiveAttack,
+      actionBaseValue: resolvedAction.type === "attack" ? resolvedAction.value : 1,
+      actionBonusApplied:
+        resolvedAction.type === "attack" && boostTarget === "action"
+          ? effectiveBoost + testControls.attackModifier
+          : testControls.attackModifier,
+      actionReductionTotal: dragonEncounter.armor + elementalPenalty,
+      actionReductionReasons: [
+        ...(dragonEncounter.armor > 0 ? [`Armor ${dragonEncounter.armor}`] : []),
+        ...(elementalPenalty > 0 ? [`${elementLabels[dragonEncounter.element]} resistance ${elementalPenalty}`] : []),
+      ],
       totalInitiative,
       damagePenalty,
       timePenalty: 0,
@@ -472,7 +515,6 @@ export default function Home() {
   const [notice, setNotice] = useState<string | null>(null);
   const [finalActionSets, setFinalActionSets] = useState<FinalActionSet[]>([]);
   const [dragonJourneyRegroupUsed, setDragonJourneyRegroupUsed] = useState(false);
-  const [regroupMode, setRegroupMode] = useState(false);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -560,6 +602,14 @@ export default function Home() {
 
     const cardId = active.id as string;
     const zone = over.id as ZoneId;
+
+    if (zone === "regroupDiscard") {
+      const card = cards[cardId];
+      if (card) {
+        handleRegroupDiscard(card);
+      }
+      return;
+    }
 
     if (zone === "bonusInit") {
       return;
@@ -667,14 +717,17 @@ export default function Home() {
     }
 
     setFinalActionSets((prev) => prev.filter((_, setIndex) => setIndex !== index));
-    setZones((prev) => ({
-      ...prev,
-      hand: [...prev.hand, ...actionSet.cardIds],
-      action: null,
-      element: null,
-      bonusAction: null,
-      modifier: null,
-    }));
+    setZones((prev) => {
+      const stagedCardIds = getCurrentActionSetCardIds(prev);
+      return {
+        ...prev,
+        hand: [...new Set([...prev.hand, ...stagedCardIds, ...actionSet.cardIds])],
+        action: null,
+        element: null,
+        bonusAction: null,
+        modifier: null,
+      };
+    });
   }
 
   const combinedDragonJourneyResult =
@@ -1248,37 +1301,8 @@ export default function Home() {
     setNotice(`Skipped ahead to ${regions[nextRegionIndex].name}.`);
   }
 
-  const nextEncounterAfterRegroup =
-    campaign.phase === "region" && zones.deck.length > 1
-      ? (() => {
-          const nextKey = cards[zones.deck[1]];
-          if (!nextKey) {
-            return null;
-          }
-          const nextState = getCardKeyState(nextKey);
-          return `${nextState.encounter.kind === "enemy" ? "Enemy" : "Journey"} ${nextState.encounter.value}`;
-        })()
-      : null;
-
-  function enterRegroupMode() {
-    if (resolution) {
-      return;
-    }
-
-    if (campaign.phase === "region" && zones.hand.length > 0 && keyCard) {
-      setRegroupMode(true);
-      setNotice("Choose a hand card to discard for regroup.");
-      return;
-    }
-
-    if (campaign.phase === "dragon" && campaign.dragonStage === "journey" && !dragonJourneyRegroupUsed && zones.hand.length === 7) {
-      setRegroupMode(true);
-      setNotice("Choose one card to discard, then redraw the Final Journey hand.");
-    }
-  }
-
   function handleRegroupDiscard(card: Card) {
-    if (!regroupMode || resolution) {
+    if (resolution) {
       return;
     }
 
@@ -1297,7 +1321,6 @@ export default function Home() {
         };
       });
       setCampaign((prev) => ({ ...prev, divertsUsed: prev.divertsUsed + 1 }));
-      setRegroupMode(false);
       setNotice("Regrouped. A new encounter is on top of the deck.");
       return;
     }
@@ -1314,7 +1337,6 @@ export default function Home() {
         };
       });
       setDragonJourneyRegroupUsed(true);
-      setRegroupMode(false);
       setNotice("Final Journey regroup used. Build your seven-card hand again.");
     }
   }
@@ -1363,8 +1385,8 @@ export default function Home() {
 
   if (!isClientReady) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white">
-        <div className="mx-auto flex min-h-screen w-full max-w-[88rem] items-center justify-center px-4">
+      <main className="min-h-screen overflow-x-hidden bg-slate-950 text-white">
+        <div className="mx-auto flex min-h-screen w-full max-w-[78rem] items-center justify-center px-4">
           <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/70 px-6 py-5 text-sm text-slate-300 shadow-2xl">
             Loading campaign...
           </div>
@@ -1374,7 +1396,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
+    <main className="min-h-screen overflow-x-hidden bg-slate-950 text-white">
       <DndContext onDragEnd={handleDragEnd}>
         <Board
           zones={zoneCards}
@@ -1394,7 +1416,6 @@ export default function Home() {
           boostTarget={boostTarget}
           dragonStage={campaign.dragonStage}
           finalActionSets={finalActionSets.map((set) => ({ label: set.label, preview: set.preview }))}
-          regroupMode={regroupMode}
           canRegroup={
             !resolution &&
             ((campaign.phase === "region" && Boolean(keyCard) && zones.hand.length > 0 && campaign.divertsUsed < 2) ||
@@ -1404,7 +1425,6 @@ export default function Home() {
                 zones.hand.length === 7 &&
                 finalActionSets.length === 0))
           }
-          regroupPreview={campaign.phase === "region" ? nextEncounterAfterRegroup : null}
           resolution={resolution}
           resolutionCards={resolution ? resolution.availableCardIds.map((id) => cards[id]).filter(Boolean) : []}
           notice={notice}
@@ -1415,7 +1435,6 @@ export default function Home() {
             setReserveCounterKey(value ? currentReserveCounterKey : null)
           }
           onEditActionSet={editDragonActionSet}
-          onRegroup={enterRegroupMode}
           onResolve={resolveEncounter}
           onUpgradeCard={applyUpgrade}
           onDowngradeCard={applyDowngrade}
@@ -1424,7 +1443,7 @@ export default function Home() {
           onFinishResolution={finishResolution}
           returnToHandAction={returnToHandAction}
         />
-        <Hand cards={handCards} onCardClick={regroupMode ? handleRegroupDiscard : undefined} />
+        <Hand cards={handCards} />
       </DndContext>
       <div className="fixed top-4 left-[66px] z-50 flex max-h-[calc(100vh-2rem)] flex-col items-start gap-2">
         <button

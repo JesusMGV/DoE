@@ -105,6 +105,10 @@ export interface BattlePreview {
   outcome: OutcomeLabel;
   actionType: ActionType;
   totalActionValue: number;
+  actionBaseValue?: number;
+  actionBonusApplied?: number;
+  actionReductionTotal?: number;
+  actionReductionReasons?: string[];
   totalInitiative: number;
   damagePenalty: number;
   timePenalty: number;
