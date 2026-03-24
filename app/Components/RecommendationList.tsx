@@ -61,7 +61,7 @@ const filteredRecommendations =
                     ? (
                         <div className="col-span-full text-center pt-16 text-zinc-500 dark:text-zinc-400">
                             <p className="text-xl italic">
-                                No recommendations found for "{genreFilter}"
+                                No recommendations found for &quot;{genreFilter}&quot;
                             </p>
                         </div>)
                     : (

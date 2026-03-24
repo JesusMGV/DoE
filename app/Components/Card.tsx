@@ -1,188 +1,141 @@
 "use client";
 
-import React, { JSX, useRef } from "react";
+import { JSX, useRef } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import { Droplets, Flame, Footprints, Mountain, Sword, Wind, Zap } from "lucide-react";
+
 import { Card } from "../Types/types";
-import { Flame, Droplet, Mountain, Wind, Footprints, Sword, Zap } from "lucide-react";
+import { getCardLevelStats, getCardKeyState, hardshipMeta } from "./game/rulebookMeta";
 import { ResistanceIcon } from "./ResistanceIcon";
 
-const elementStyles: Record<string, string> = {
-    fire: "bg-gradient-to-b from-red-500/70 to-red-800/20",
-    water: "bg-gradient-to-b from-blue-400/70 to-blue-900/20",
-    earth: "bg-gradient-to-b from-green-400/70  to-green-900/20",
-    wind: "bg-gradient-to-b from-amber-300/70  to-amber-900/20",
-};
-const actionElementStyles: Record<string, string> = {
-    fire: "bg-red-500/80",
-    water: "bg-blue-400/80",
-    earth: "bg-green-400/80",
-    wind: "bg-amber-300/80",
+const cardBackgrounds: Record<string, string> = {
+  fire: "from-red-500/80 to-red-950",
+  water: "from-cyan-400/80 to-cyan-950",
+  earth: "from-emerald-500/80 to-emerald-950",
+  wind: "from-amber-300/80 to-amber-950",
 };
 
-const upgradePulseStyles: Record<string, string> = {
-    // fire: "animate-pulse bg-red-500/30 ring-2 ring-red-400/50",
-    fire: "animate-[pulse_2s_ease-in-out_infinite] bg-red-500/30 ring-2 ring-red-400/50 shadow-red-500/50 shadow-lg",
-    water: "animate-pulse bg-blue-500/30 ring-2 ring-blue-400/50",
-    earth: "animate-pulse bg-green-500/30 ring-2 ring-green-400/50",
-    wind: "animate-pulse bg-amber-400/30 ring-2 ring-amber-300/50",
+const upgradeBackgrounds: Record<string, string> = {
+  fire: "bg-red-500/70",
+  water: "bg-cyan-500/70",
+  earth: "bg-emerald-500/70",
+  wind: "bg-amber-400/70",
 };
 
 const elementIcons: Record<string, JSX.Element> = {
-    fire: <Flame className="w-8 h-8" />,
-    water: <Droplet className="w-8 h-8" />,
-    earth: <Mountain className="w-8 h-8" />,
-    wind: <Wind className="w-8 h-8" />,
+  fire: <Flame className="h-4 w-4" />,
+  water: <Droplets className="h-4 w-4" />,
+  earth: <Mountain className="h-4 w-4" />,
+  wind: <Wind className="h-4 w-4" />,
 };
 
 export default function CardComponent({
-    card,
-    onClickAction,
-    zone,
-    upgraded
+  card,
+  onClickAction,
+  zone = "",
 }: {
-    card: Card;
-    onClickAction?: (card: Card) => void;
-    zone: string;
-    upgraded: boolean;
+  card: Card;
+  onClickAction?: (card: Card) => void;
+  zone?: string;
 }) {
+  const wasDragging = useRef(false);
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: card.id,
+    onDragStart() {
+      wasDragging.current = true;
+    },
+    onDragEnd() {
+      setTimeout(() => {
+        wasDragging.current = false;
+      }, 0);
+    },
+  });
 
-    const wasDragging = useRef(false);
+  const style = {
+    transform: CSS.Translate.toString(transform),
+  };
 
-    const { attributes, listeners, setNodeRef, transform } = useDraggable({
-        id: card.id,
-        onDragStart() {
-            wasDragging.current = true;
-        },
-        onDragEnd() {
-            setTimeout(() => {
-                wasDragging.current = false;
-            }, 0);
+  const keyState = getCardKeyState(card);
+  const stats = getCardLevelStats(card);
+  const hardshipInfo = keyState.hardship ? hardshipMeta[keyState.hardship] : null;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        onClickAction?.(card);
+      }}
+      onClick={() => {
+        if (wasDragging.current) {
+          return;
         }
-    });
 
-    const style = {
-        transform: CSS.Translate.toString(transform),
-    };
-
-    function zoneOpacity(expected: string) {
-        return zone && zone !== expected ? "opacity-30" : "";
-    }
-
-    function zoneHighlight(expected: string) {
-        return zone === expected
-            ? "text-lg animate-pulse duration-[2000ms] bg-slate-900/80 p-1 rounded-lg"
-            : "";
-    }
-
-    const elementStyle = elementStyles[card.element] ?? "bg-slate-300";
-    const upgradeStyle = actionElementStyles[card.upgradeRequirement] ?? "bg-slate-300";
-    const upgradePulse = upgradePulseStyles[card.upgradeRequirement] ?? "";
-    // console.log(upgradeStyle)
-
-    return (
-        <div
-            ref={setNodeRef}
-            style={style}
-            {...listeners}
-            {...attributes}
-            onContextMenu={(e) => {
-                e.preventDefault();
-                onClickAction?.(card);
-            }}
-            onClick={() => {
-                if (wasDragging.current) return;
-                onClickAction && onClickAction(card);
-            }}
-            className={`w-36 h-58 rounded-2xl ${elementStyle}
-            border border-slate-700 shadow-xl p-3 cursor-grab
-            active:cursor-grabbing select-none
-            flex flex-col justify-between text-white`}
-        >
-            {/* Card Name */}
-            <div className="text-center font-bold text-sm border-b border-white/40 pb-1 flex items-center justify-center gap-1">
-                {card.name}
-            </div>
-
-            {/* Element Icon */}
-            <div className={`flex justify-center mt-1
-                ${zoneOpacity("element")}
-                ${zoneHighlight("element")}`}>
-                {elementIcons[card.element]}
-            </div>
-
-            {/* Card Body */}
-            <div className="text-xs space-y-1 mt-2">
-
-                <div className="flex justify-between">
-
-                    {/* Base Action */}
-                    <span
-                        className={`border border-black font-semibold p-1 bg-slate-700/80 rounded-lg
-                        ${zone === "action" && !upgraded ? "animate-pulse bg-slate-900/40" : ""}
-                        ${zoneOpacity("action")}
-                        ${zone === "action" && upgraded ? "opacity-30" : ""}
-                        ${zone === "action" && !upgraded ? zoneHighlight("action") : ""}
-                        ${zone === "action" ? "text-lg p-1" : ""}
-                        `}
-                    >
-                        {card.action.type === "move"
-                            ? <Footprints className="inline w-5 h-5" />
-                            : <Sword className="inline w-5 h-5" />}
-                        {card.action.value}
-                    </span>
-
-                    {/* Upgraded Action */}
-                    <span
-                        className={`border border-black font-semibold ${upgradeStyle} p-1 rounded-lg
-                        ${zone === "action" && upgraded ? upgradePulse : ""}
-                        ${zoneOpacity("action")}
-                        ${zone === "action" && upgraded ? zoneHighlight("action") : ""}
-                        ${zone === "action" && !upgraded ? "opacity-30" : ""}
-                        ${zone === "action" ? "text-lg p-1" : ""}
-                        `}
-                    >
-                        {card.upgradedAction.type === "move"
-                            ? <Footprints className="inline w-5 h-5" />
-                            : <Sword className="inline w-5 h-5" />}
-                        {card.upgradedAction.value}
-                    </span>
-
-                </div>
-
-                {/* Initiative */}
-                <div className={`flex justify-between
-                    ${zoneOpacity("element")}
-                    ${zoneHighlight("element")}`}>
-                    <span><Zap className="inline w-5 h-5" /></span>
-                    <span>{card.initiative}</span>
-                </div>
-
-                {/* Bonus */}
-                <div className={`flex justify-between
-                    ${zoneOpacity("bonusAction")}
-                    ${zoneHighlight("bonusAction")}`}>
-                    <span>Bonus</span>
-                    <span>{card.bonus}</span>
-                </div>
-                <div className={`flex justify-between
-                    ${zoneOpacity("bonusInit")}
-                    ${zoneHighlight("bonusInit")}`}>
-                    <span>Bonus</span>
-                    <span>{card.bonus}</span>
-                </div>
-
-            </div>
-
-            {/* Resistance */}
-            <div className={`text-xs border-t border-white/40 pt-1 flex justify-between items-center
-                ${zone && zone !== 'elementasdas' ? 'opacity-50' : ''}`}>
-                <span>Resist</span>
-                <ResistanceIcon
-                    element={card.resistance.element}
-                    value={card.resistance.value}
-                />
-            </div>
+        onClickAction?.(card);
+      }}
+      className={`flex h-48 w-32 cursor-grab select-none flex-col justify-between rounded-[1.25rem] border border-white/10 bg-gradient-to-b ${cardBackgrounds[card.element] ?? "from-slate-500 to-slate-950"} p-2.5 text-white shadow-xl active:cursor-grabbing`}
+    >
+      <div>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold leading-4">{card.name}</div>
+          </div>
+          <div className="rounded-full bg-black/20 p-1.5">{elementIcons[card.element]}</div>
         </div>
-    );
+
+        <div className="mt-2 flex items-start justify-between gap-2">
+          <div className="flex min-h-6 items-center gap-1">
+            {hardshipInfo ? (
+              <div
+                title={`${hardshipInfo.label}: ${hardshipInfo.description}`}
+                className="rounded-full border border-white/15 bg-black/20 p-1 text-white/80"
+              >
+                {hardshipInfo.icon}
+              </div>
+            ) : null}
+          </div>
+          <div className="shrink-0">
+            <ResistanceIcon element={stats.resistance.element} value={stats.resistance.value} />
+          </div>
+        </div>
+
+        <div className="mt-2 flex items-center justify-between rounded-lg bg-black/20 px-2 py-1 text-[11px]">
+          <span className="inline-flex items-center gap-1">
+            Lv {card.level}
+          </span>
+        </div>
+
+        <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+          <div className={`rounded-lg px-2 py-1 ${zone === "action" ? "bg-slate-950/85" : "bg-black/20"}`}>
+            {stats.action.type === "move" ? (
+              <Footprints className="mr-1 inline h-3.5 w-3.5" />
+            ) : (
+              <Sword className="mr-1 inline h-3.5 w-3.5" />
+            )}
+            {stats.action.value}
+          </div>
+          <div className={`rounded-lg px-2 py-1 ${zone === "element" ? "bg-slate-950/85" : "bg-black/20"}`}>
+            <Zap className="mr-1 inline h-3.5 w-3.5" />
+            {stats.initiative}
+          </div>
+          <div className={`rounded-lg px-2 py-1 ${zone === "bonusAction" ? "bg-slate-950/85" : "bg-black/20"}`}>
+            +{stats.bonus}
+          </div>
+          <div className={`rounded-lg px-2 py-1 text-black ${upgradeBackgrounds[card.upgradeRequirement]}`}>
+            {stats.upgradedAction.type === "move" ? (
+              <Footprints className="mr-1 inline h-3.5 w-3.5" />
+            ) : (
+              <Sword className="mr-1 inline h-3.5 w-3.5" />
+            )}
+            {stats.upgradedAction.value}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
 }
